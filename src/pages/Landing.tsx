@@ -32,13 +32,13 @@ const Landing = () => {
             </Badge>
             
             <h1 className="text-4xl md:text-6xl font-bold max-w-4xl mx-auto leading-tight">
-              Gestão completa para 
+              A revolução na gestão de 
               <span className="gradient-text"> profissionais autônomos</span>
             </h1>
             
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Agenda online, pagamentos por Pix, lembretes no WhatsApp e muito mais. 
-              Tudo em uma plataforma simples e eficiente.
+              Agenda inteligente, pagamentos automáticos, WhatsApp integrado e insights poderosos. 
+              A plataforma que seu negócio merece.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -150,7 +150,7 @@ const Landing = () => {
             Pronto para crescer seu negócio?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de profissionais que já transformaram sua gestão com o GestãoPro
+            Junte-se a milhares de profissionais que já transformaram sua gestão com o Clienio
           </p>
           <Link to="/register">
             <HeroButton size="xl" className="mb-4">
