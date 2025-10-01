@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HeroButton } from "@/components/ui/hero-button";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import { toast } from "sonner";
 import { 
   Calendar, 
   Users, 
@@ -13,11 +17,55 @@ import {
   QrCode,
   MessageSquare,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from "lucide-react";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentMonth] = useState("Dezembro 2024");
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+      
+      setUser(user);
+      setLoading(false);
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate("/login");
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Logout realizado com sucesso!");
+    navigate("/");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   // Dados mockados - serão substituídos pelos dados do Supabase
   const stats = {
@@ -40,8 +88,10 @@ const Dashboard = () => {
         <div className="container py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Painel de Controle</h1>
-              <p className="text-muted-foreground">Bem-vindo de volta!</p>
+              <h1 className="text-2xl font-bold gradient-text">Clienio</h1>
+              <p className="text-muted-foreground">
+                Bem-vindo, {user?.user_metadata?.full_name || "Profissional"}!
+              </p>
             </div>
             <div className="flex items-center space-x-3">
               <Button variant="outline" size="sm">
@@ -52,6 +102,10 @@ const Dashboard = () => {
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Agendamento
               </HeroButton>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
             </div>
           </div>
         </div>

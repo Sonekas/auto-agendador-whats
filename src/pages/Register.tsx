@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,9 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Eye, EyeOff } from "lucide-react";
 import { HeroButton } from "@/components/ui/hero-button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Register = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,10 +22,34 @@ const Register = () => {
     phone: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aqui será implementado o registro com Supabase
-    console.log("Register attempt:", formData);
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            business_name: `${formData.name} - ${formData.profession}`,
+            business_type: formData.profession,
+            phone: formData.phone,
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Conta criada com sucesso! Bem-vindo ao Clienio!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar conta");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -36,7 +64,7 @@ const Register = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary">
               <Calendar className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text">GestãoPro</span>
+            <span className="text-2xl font-bold gradient-text">Clienio</span>
           </Link>
         </div>
 
@@ -135,8 +163,8 @@ const Register = () => {
                 </p>
               </div>
 
-              <HeroButton type="submit" className="w-full">
-                Criar Conta Grátis
+              <HeroButton type="submit" className="w-full" disabled={loading}>
+                {loading ? "Criando conta..." : "Criar Conta Grátis"}
               </HeroButton>
             </form>
 
