@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { HeroButton } from "@/components/ui/hero-button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -18,8 +19,12 @@ import {
   MessageSquare,
   TrendingUp,
   AlertCircle,
-  LogOut
+  LogOut,
+  Briefcase,
+  CalendarClock
 } from "lucide-react";
+import { ServicesManager } from "@/components/dashboard/ServicesManager";
+import { SlotsManager } from "@/components/dashboard/SlotsManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -167,87 +172,118 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Appointments Today */}
-          <div className="lg:col-span-2">
-            <Card className="card-gradient border-0 shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2" />
-                  Agendamentos de Hoje
-                </CardTitle>
-                <CardDescription>
-                  Seus próximos atendimentos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentAppointments.map((appointment) => (
-                    <div key={appointment.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <Users className="h-5 w-5 text-primary" />
+        {/* Tabs Navigation */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+            <TabsTrigger value="overview">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="services">
+              <Briefcase className="h-4 w-4 mr-2" />
+              Serviços
+            </TabsTrigger>
+            <TabsTrigger value="schedule">
+              <CalendarClock className="h-4 w-4 mr-2" />
+              Horários
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Appointments Today */}
+              <div className="lg:col-span-2">
+                <Card className="card-gradient border-0 shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Calendar className="h-5 w-5 mr-2" />
+                      Agendamentos de Hoje
+                    </CardTitle>
+                    <CardDescription>
+                      Seus próximos atendimentos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {recentAppointments.map((appointment) => (
+                        <div key={appointment.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <Users className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{appointment.client}</p>
+                              <p className="text-sm text-muted-foreground">{appointment.service}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <span className="text-sm font-medium">{appointment.time}</span>
+                            <Badge variant={appointment.status === "confirmed" ? "default" : "secondary"}>
+                              {appointment.status === "confirmed" ? "Confirmado" : "Pendente"}
+                            </Badge>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{appointment.client}</p>
-                          <p className="text-sm text-muted-foreground">{appointment.service}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <span className="text-sm font-medium">{appointment.time}</span>
-                        <Badge variant={appointment.status === "confirmed" ? "default" : "secondary"}>
-                          {appointment.status === "confirmed" ? "Confirmado" : "Pendente"}
-                        </Badge>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Quick Actions */}
-          <div className="space-y-6">
-            <Card className="card-gradient border-0 shadow-card">
-              <CardHeader>
-                <CardTitle>Ações Rápidas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button className="w-full justify-start" variant="outline">
-                  <QrCode className="h-4 w-4 mr-2" />
-                  QR Code da Agenda
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Enviar Lembretes
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Ver Relatórios
-                </Button>
-              </CardContent>
-            </Card>
+              {/* Quick Actions */}
+              <div className="space-y-6">
+                <Card className="card-gradient border-0 shadow-card">
+                  <CardHeader>
+                    <CardTitle>Ações Rápidas</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button className="w-full justify-start" variant="outline">
+                      <QrCode className="h-4 w-4 mr-2" />
+                      QR Code da Agenda
+                    </Button>
+                    <Button className="w-full justify-start" variant="outline">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Enviar Lembretes
+                    </Button>
+                    <Button className="w-full justify-start" variant="outline">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Ver Relatórios
+                    </Button>
+                  </CardContent>
+                </Card>
 
-            {/* WhatsApp Integration Status */}
-            <Card className="card-gradient border-0 shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  WhatsApp
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-2 mb-4">
-                  <AlertCircle className="h-4 w-4 text-warning" />
-                  <span className="text-sm text-muted-foreground">Não configurado</span>
-                </div>
-                <Button variant="outline" className="w-full">
-                  Configurar WhatsApp
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                {/* WhatsApp Integration Status */}
+                <Card className="card-gradient border-0 shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <MessageSquare className="h-5 w-5 mr-2" />
+                      WhatsApp
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <AlertCircle className="h-4 w-4 text-warning" />
+                      <span className="text-sm text-muted-foreground">Não configurado</span>
+                    </div>
+                    <Button variant="outline" className="w-full">
+                      Configurar WhatsApp
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Services Tab */}
+          <TabsContent value="services">
+            <ServicesManager />
+          </TabsContent>
+
+          {/* Schedule Tab */}
+          <TabsContent value="schedule">
+            <SlotsManager />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
