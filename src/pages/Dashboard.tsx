@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { ServicesManager } from "@/components/dashboard/ServicesManager";
 import { SlotsManager } from "@/components/dashboard/SlotsManager";
+import { AppointmentsManager } from "@/components/dashboard/AppointmentsManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -174,10 +175,14 @@ const Dashboard = () => {
 
         {/* Tabs Navigation */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto">
             <TabsTrigger value="overview">
               <TrendingUp className="h-4 w-4 mr-2" />
               Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="appointments">
+              <Calendar className="h-4 w-4 mr-2" />
+              Agendamentos
             </TabsTrigger>
             <TabsTrigger value="services">
               <Briefcase className="h-4 w-4 mr-2" />
@@ -275,6 +280,10 @@ const Dashboard = () => {
           </TabsContent>
 
           {/* Services Tab */}
+          <TabsContent value="appointments">
+            <AppointmentsManager />
+          </TabsContent>
+
           <TabsContent value="services">
             <ServicesManager />
           </TabsContent>
