@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Clock, DollarSign, User, Phone, Calendar as CalendarIcon, CheckCircle } from "lucide-react";
+import { Clock, DollarSign, User, Phone, Calendar as CalendarIcon, CheckCircle, Copy } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Service {
@@ -23,6 +23,7 @@ interface Profile {
   full_name: string;
   business_name: string;
   business_type: string;
+  pix_key: string;
 }
 
 interface AvailableSlot {
@@ -57,6 +58,7 @@ const Booking = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
+  const [pixKey, setPixKey] = useState<string>("");
 
   useEffect(() => {
     loadProfessionalData();
@@ -81,6 +83,7 @@ const Booking = () => {
       
       setProfile(profileData);
       setProfessionalId(profileData.id);
+      setPixKey(profileData.pix_key || "");
 
       const { data: servicesData, error: servicesError } = await supabase
         .from("services")
@@ -218,6 +221,11 @@ const Booking = () => {
     );
   }
 
+  const copyPixKey = () => {
+    navigator.clipboard.writeText(pixKey);
+    toast.success("Chave PIX copiada!");
+  };
+
   if (bookingComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-accent/10">
@@ -238,8 +246,35 @@ const Booking = () => {
               <p className="text-sm"><strong>Horário:</strong> {selectedTime?.slice(0, 5)}</p>
               <p className="text-sm"><strong>Valor:</strong> R$ {selectedService?.price.toFixed(2)}</p>
             </div>
+
+            {pixKey && (
+              <Alert className="bg-primary/5 border-primary/20">
+                <AlertDescription className="space-y-3">
+                  <p className="font-semibold text-sm">Informações de Pagamento - PIX</p>
+                  <div className="space-y-2">
+                    <p className="text-sm">Chave PIX:</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 p-2 bg-background rounded text-sm break-all">
+                        {pixKey}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={copyPixKey}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Após realizar o pagamento, seu agendamento será confirmado pelo profissional.
+                    </p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <p className="text-sm text-muted-foreground text-center">
-              Em breve você receberá uma confirmação
+              {pixKey ? "Realize o pagamento para confirmar seu agendamento" : "Em breve você receberá uma confirmação"}
             </p>
           </CardContent>
         </Card>

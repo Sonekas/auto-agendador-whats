@@ -21,11 +21,13 @@ import {
   AlertCircle,
   LogOut,
   Briefcase,
-  CalendarClock
+  CalendarClock,
+  Wallet
 } from "lucide-react";
 import { ServicesManager } from "@/components/dashboard/ServicesManager";
 import { SlotsManager } from "@/components/dashboard/SlotsManager";
 import { AppointmentsManager } from "@/components/dashboard/AppointmentsManager";
+import { PaymentSettings } from "@/components/dashboard/PaymentSettings";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -175,7 +177,7 @@ const Dashboard = () => {
 
         {/* Tabs Navigation */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
             <TabsTrigger value="overview">
               <TrendingUp className="h-4 w-4 mr-2" />
               Visão Geral
@@ -191,6 +193,10 @@ const Dashboard = () => {
             <TabsTrigger value="schedule">
               <CalendarClock className="h-4 w-4 mr-2" />
               Horários
+            </TabsTrigger>
+            <TabsTrigger value="payments">
+              <Wallet className="h-4 w-4 mr-2" />
+              Pagamentos
             </TabsTrigger>
           </TabsList>
 
@@ -291,6 +297,11 @@ const Dashboard = () => {
           {/* Schedule Tab */}
           <TabsContent value="schedule">
             <SlotsManager />
+          </TabsContent>
+
+          {/* Payments Tab */}
+          <TabsContent value="payments">
+            <PaymentSettings />
           </TabsContent>
         </Tabs>
       </div>
