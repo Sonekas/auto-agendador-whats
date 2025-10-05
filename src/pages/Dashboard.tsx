@@ -28,6 +28,7 @@ import { ServicesManager } from "@/components/dashboard/ServicesManager";
 import { SlotsManager } from "@/components/dashboard/SlotsManager";
 import { AppointmentsManager } from "@/components/dashboard/AppointmentsManager";
 import { PaymentSettings } from "@/components/dashboard/PaymentSettings";
+import { ClientsManager } from "@/components/dashboard/ClientsManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -177,7 +178,7 @@ const Dashboard = () => {
 
         {/* Tabs Navigation */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto">
             <TabsTrigger value="overview">
               <TrendingUp className="h-4 w-4 mr-2" />
               Visão Geral
@@ -185,6 +186,10 @@ const Dashboard = () => {
             <TabsTrigger value="appointments">
               <Calendar className="h-4 w-4 mr-2" />
               Agendamentos
+            </TabsTrigger>
+            <TabsTrigger value="clients">
+              <Users className="h-4 w-4 mr-2" />
+              Clientes
             </TabsTrigger>
             <TabsTrigger value="services">
               <Briefcase className="h-4 w-4 mr-2" />
@@ -285,9 +290,14 @@ const Dashboard = () => {
             </div>
           </TabsContent>
 
-          {/* Services Tab */}
+          {/* Appointments Tab */}
           <TabsContent value="appointments">
             <AppointmentsManager />
+          </TabsContent>
+
+          {/* Clients Tab */}
+          <TabsContent value="clients">
+            <ClientsManager />
           </TabsContent>
 
           <TabsContent value="services">
