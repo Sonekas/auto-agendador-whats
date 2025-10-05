@@ -1,262 +1,270 @@
-import { HeroButton } from "@/components/ui/hero-button";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Check, 
-  Star, 
-  Zap, 
-  Crown,
-  Users,
-  Calendar,
-  MessageSquare,
-  TrendingUp,
-  Shield
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Check, CreditCard, Settings } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+
+interface Plan {
+  name: string;
+  price: number;
+  priceId: string;
+  productId: string;
+  interval: string;
+  discount: string | null;
+  originalPrice?: number;
+  totalPrice?: number;
+}
+
+
+const PLANS: Record<string, Plan> = {
+  monthly: {
+    name: "Plano Mensal",
+    price: 49,
+    priceId: "price_1SEX2FR5mYTKutcwKg3rajkp",
+    productId: "prod_TAsnJWttAhG039",
+    interval: "mês",
+    discount: null,
+  },
+  semester: {
+    name: "Plano Semestral",
+    price: 44,
+    originalPrice: 49,
+    priceId: "price_1SEzWaR5mYTKutcww7zGemWv",
+    productId: "prod_TBMFp6wXgVXgjs",
+    interval: "6 meses",
+    discount: "10% OFF",
+    totalPrice: 264,
+  },
+  annual: {
+    name: "Plano Anual",
+    price: 39.17,
+    originalPrice: 49,
+    priceId: "price_1SEzWnR5mYTKutcw3yYcOBXz",
+    productId: "prod_TBMFswLtsquYda",
+    interval: "ano",
+    discount: "20% OFF",
+    totalPrice: 470,
+  },
+};
 
 const Pricing = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (user) {
+        await checkSubscription();
+      }
+    } catch (error) {
+      console.error("Erro ao verificar autenticação:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      
+      if (error) throw error;
+      setSubscription(data);
+    } catch (error) {
+      console.error("Erro ao verificar assinatura:", error);
+    }
+  };
+
+  const handleSubscribe = async (priceId: string, planKey: string) => {
+    if (!user) {
+      toast.error("Você precisa estar logado para assinar");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setProcessingPlan(planKey);
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { priceId },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+        setTimeout(() => checkSubscription(), 3000);
+      }
+    } catch (error: any) {
+      console.error("Erro ao criar checkout:", error);
+      toast.error("Erro ao processar pagamento: " + error.message);
+    } finally {
+      setProcessingPlan(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      console.error("Erro ao abrir portal:", error);
+      toast.error("Erro ao abrir portal de gerenciamento: " + error.message);
+    }
+  };
+
+  const isCurrentPlan = (productId: string) => {
+    return subscription?.subscribed && subscription?.product_id === productId;
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 hero-gradient opacity-5"></div>
-        <div className="container relative max-w-screen-xl">
-          <div className="text-center space-y-8 animate-fade-in">
-            <Badge variant="secondary" className="mx-auto w-fit">
-              ⚡ Oferta especial de lançamento
-            </Badge>
-            
-            <h1 className="text-4xl md:text-6xl font-bold max-w-4xl mx-auto leading-tight">
-              Escolha o plano ideal para 
-              <span className="gradient-text"> seu negócio</span>
+      <main className="flex-1 container py-16">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold gradient-text">
+              Escolha seu Plano
             </h1>
-            
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Comece grátis e escale conforme seu negócio cresce. 
-              Sem compromisso, sem taxas ocultas.
+              Gerencie seus agendamentos com facilidade. Escolha o plano ideal para o seu negócio.
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* Pricing Cards */}
-      <section className="py-20">
-        <div className="container max-w-screen-xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {plans.map((plan, index) => (
-              <Card 
-                key={index} 
-                className={`relative ${plan.featured ? 'ring-2 ring-primary shadow-2xl scale-105' : ''} card-gradient border-0 shadow-card hover:shadow-primary transition-all duration-300`}
-              >
-                {plan.featured && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground px-4 py-1">
-                      <Star className="w-4 h-4 mr-1" />
-                      Mais Popular
+          {user && subscription?.subscribed && (
+            <div className="flex justify-center">
+              <Button onClick={handleManageSubscription} variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Gerenciar Assinatura
+              </Button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {Object.entries(PLANS).map(([key, plan]) => {
+              const isCurrent = isCurrentPlan(plan.productId);
+              
+              return (
+                <Card 
+                  key={key} 
+                  className={`relative ${isCurrent ? "border-primary shadow-lg" : ""} ${key === "semester" ? "border-accent" : ""}`}
+                >
+                  {plan.discount && (
+                    <Badge className="absolute -top-3 right-6 bg-accent text-accent-foreground">
+                      {plan.discount}
                     </Badge>
-                  </div>
-                )}
-                
-                <CardHeader className="text-center pb-8">
-                  <div className={`flex h-16 w-16 items-center justify-center rounded-2xl mx-auto mb-4 ${
-                    plan.featured ? 'bg-gradient-primary' : 'bg-muted'
-                  }`}>
-                    <plan.icon className={`h-8 w-8 ${plan.featured ? 'text-white' : 'text-foreground'}`} />
-                  </div>
+                  )}
+                  {isCurrent && (
+                    <Badge className="absolute -top-3 left-6 bg-primary">
+                      Plano Atual
+                    </Badge>
+                  )}
                   
-                  <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                  <CardDescription className="text-base mt-2">{plan.description}</CardDescription>
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                    <CardDescription className="text-base">
+                      Pagamento a cada {plan.interval}
+                    </CardDescription>
+                  </CardHeader>
                   
-                  <div className="pt-6">
-                    <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      {plan.period && <span className="text-muted-foreground ml-1">{plan.period}</span>}
-                    </div>
-                    {plan.originalPrice && (
-                      <div className="text-sm text-muted-foreground line-through mt-1">
-                        De {plan.originalPrice}
+                  <CardContent className="space-y-6">
+                    <div className="text-center">
+                      <div className="flex items-baseline justify-center gap-2">
+                        {plan.originalPrice && (
+                          <span className="text-lg line-through text-muted-foreground">
+                            R$ {plan.originalPrice.toFixed(2)}
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-6">
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start">
-                        <Check className="h-5 w-5 text-success mr-3 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <div className="pt-6">
-                    {plan.featured ? (
-                      <Link to="/register" className="block">
-                        <HeroButton className="w-full">
-                          {plan.buttonText}
-                        </HeroButton>
-                      </Link>
-                    ) : (
-                      <Link to="/register" className="block">
-                        <Button variant="outline" className="w-full">
-                          {plan.buttonText}
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-sm">R$</span>
+                        <span className="text-4xl font-bold">{plan.price.toFixed(2)}</span>
+                        <span className="text-muted-foreground">/mês</span>
+                      </div>
+                      {plan.totalPrice && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Cobrança de R$ {plan.totalPrice.toFixed(2)} por {plan.interval}
+                        </p>
+                      )}
+                    </div>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container max-w-screen-xl">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold">
-              Perguntas Frequentes
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Tire suas dúvidas sobre os planos e funcionalidades
+                    <ul className="space-y-3">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-primary" />
+                        <span className="text-sm">Agendamentos ilimitados</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-primary" />
+                        <span className="text-sm">Gestão de clientes</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-primary" />
+                        <span className="text-sm">Página de agendamento</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-primary" />
+                        <span className="text-sm">Pagamentos via PIX</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-primary" />
+                        <span className="text-sm">Suporte prioritário</span>
+                      </li>
+                    </ul>
+
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      onClick={() => handleSubscribe(plan.priceId, key)}
+                      disabled={isCurrent || processingPlan === key || loading}
+                      variant={key === "semester" ? "default" : "outline"}
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      {isCurrent 
+                        ? "Plano Atual" 
+                        : processingPlan === key 
+                        ? "Processando..." 
+                        : "Assinar Agora"
+                      }
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="text-center space-y-4 pt-8">
+            <p className="text-sm text-muted-foreground">
+              Pagamentos processados de forma segura via Stripe
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Cancele a qualquer momento • Sem taxas ocultas
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {faqs.map((faq, index) => (
-              <Card key={index} className="card-gradient border-0 shadow-card">
-                <CardHeader>
-                  <CardTitle className="text-lg">{faq.question}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{faq.answer}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 hero-gradient opacity-10"></div>
-        <div className="container relative max-w-screen-xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Pronto para revolucionar seu negócio?
-          </h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Comece seu teste gratuito agora e veja como o Clienio pode transformar sua gestão
-          </p>
-          <Link to="/register">
-            <HeroButton size="xl" className="mb-4">
-              Começar Teste Gratuito
-            </HeroButton>
-          </Link>
-          <p className="text-sm text-muted-foreground">
-            ✅ 30 dias grátis • ✅ Sem cartão • ✅ Cancele quando quiser
-          </p>
-        </div>
-      </section>
+      </main>
 
       <Footer />
     </div>
   );
 };
-
-const plans = [
-  {
-    name: "Gratuito",
-    description: "Para começar e testar",
-    price: "R$ 0",
-    period: "/mês",
-    icon: Zap,
-    featured: false,
-    buttonText: "Começar Grátis",
-    features: [
-      "Até 50 agendamentos/mês",
-      "1 profissional",
-      "Agenda online básica",
-      "Cadastro de clientes",
-      "Suporte por email",
-      "Relatórios básicos"
-    ]
-  },
-  {
-    name: "Profissional",
-    description: "Para negócios em crescimento",
-    price: "R$ 29",
-    originalPrice: "R$ 49",
-    period: "/mês",
-    icon: Users,
-    featured: true,
-    buttonText: "Escolher Profissional",
-    features: [
-      "Agendamentos ilimitados",
-      "Até 3 profissionais",
-      "WhatsApp automático",
-      "Pagamentos via Pix",
-      "Link personalizado",
-      "Relatórios avançados",
-      "Histórico completo",
-      "Suporte prioritário",
-      "Backup automático"
-    ]
-  },
-  {
-    name: "Enterprise",
-    description: "Para grandes operações",
-    price: "R$ 79",
-    originalPrice: "R$ 129",
-    period: "/mês",
-    icon: Crown,
-    featured: false,
-    buttonText: "Escolher Enterprise",
-    features: [
-      "Tudo do Profissional",
-      "Profissionais ilimitados",
-      "API personalizada",
-      "Integrações avançadas",
-      "Relatórios customizados",
-      "Suporte 24/7",
-      "Gerente de conta dedicado",
-      "Treinamento incluído",
-      "SLA garantido"
-    ]
-  }
-];
-
-const faqs = [
-  {
-    question: "Posso cancelar a qualquer momento?",
-    answer: "Sim! Você pode cancelar sua assinatura a qualquer momento. Não há taxas de cancelamento ou multas."
-  },
-  {
-    question: "Como funciona o teste gratuito?",
-    answer: "Você tem 30 dias para testar todas as funcionalidades do plano Profissional sem precisar inserir cartão de crédito."
-  },
-  {
-    question: "Preciso de conhecimento técnico?",
-    answer: "Não! O Clienio foi desenvolvido para ser simples e intuitivo. Você configura tudo em poucos minutos."
-  },
-  {
-    question: "Os dados ficam seguros?",
-    answer: "Sim! Usamos criptografia de nível bancário e fazemos backup automático de todos os seus dados."
-  },
-  {
-    question: "Posso mudar de plano depois?",
-    answer: "Claro! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento."
-  },
-  {
-    question: "Como funciona o WhatsApp automático?",
-    answer: "Enviamos lembretes automáticos para seus clientes via WhatsApp, reduzindo faltas em até 90%."
-  }
-];
 
 export default Pricing;
