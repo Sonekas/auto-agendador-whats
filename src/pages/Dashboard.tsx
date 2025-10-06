@@ -38,9 +38,15 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentMonth] = useState("Dezembro 2024");
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [publicLink, setPublicLink] = useState<string>("");
+  const [stats, setStats] = useState({
+    monthlyAppointments: 0,
+    monthlyRevenue: 0,
+    todayAppointments: 0,
+    totalClients: 0
+  });
+  const [todayAppointments, setTodayAppointments] = useState<any[]>([]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -64,6 +70,9 @@ const Dashboard = () => {
         setPublicLink(profile.public_link);
       }
       
+      // Carregar estatísticas
+      await loadStats(user.id);
+      
       setLoading(false);
     };
 
@@ -74,11 +83,74 @@ const Dashboard = () => {
         navigate("/login");
       } else {
         setUser(session.user);
+        loadStats(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const loadStats = async (userId: string) => {
+    try {
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      // Agendamentos do mês
+      const { data: monthlyAppts, error: monthError } = await supabase
+        .from("appointments")
+        .select("price")
+        .eq("professional_id", userId)
+        .gte("appointment_date", startOfMonth.toISOString().split('T')[0]);
+      
+      if (monthError) throw monthError;
+      
+      // Agendamentos de hoje
+      const { data: todayAppts, error: todayError } = await supabase
+        .from("appointments")
+        .select("*, service_id")
+        .eq("professional_id", userId)
+        .eq("appointment_date", startOfDay.toISOString().split('T')[0])
+        .order("appointment_time");
+      
+      if (todayError) throw todayError;
+      
+      // Total de clientes
+      const { count: clientsCount, error: clientsError } = await supabase
+        .from("clients")
+        .select("*", { count: 'exact', head: true })
+        .eq("professional_id", userId);
+      
+      if (clientsError) throw clientsError;
+      
+      // Buscar nomes dos serviços para os agendamentos de hoje
+      if (todayAppts && todayAppts.length > 0) {
+        const serviceIds = [...new Set(todayAppts.map(apt => apt.service_id))];
+        const { data: services } = await supabase
+          .from("services")
+          .select("id, name")
+          .in("id", serviceIds);
+        
+        const appointmentsWithServices = todayAppts.map(apt => ({
+          ...apt,
+          service_name: services?.find(s => s.id === apt.service_id)?.name || "Serviço"
+        }));
+        
+        setTodayAppointments(appointmentsWithServices);
+      } else {
+        setTodayAppointments([]);
+      }
+      
+      setStats({
+        monthlyAppointments: monthlyAppts?.length || 0,
+        monthlyRevenue: monthlyAppts?.reduce((sum, apt) => sum + (Number(apt.price) || 0), 0) || 0,
+        todayAppointments: todayAppts?.length || 0,
+        totalClients: clientsCount || 0
+      });
+    } catch (error) {
+      console.error("Erro ao carregar estatísticas:", error);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -107,19 +179,16 @@ const Dashboard = () => {
     );
   }
 
-  // Dados mockados - serão substituídos pelos dados do Supabase
-  const stats = {
-    monthlyAppointments: 48,
-    monthlyRevenue: 2400,
-    todayAppointments: 6,
-    totalClients: 127
+  const currentMonth = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, string> = {
+      scheduled: "Agendado",
+      confirmed: "Confirmado",
+      cancelled: "Cancelado",
+      completed: "Concluído"
+    };
+    return variants[status] || status;
   };
-
-  const recentAppointments = [
-    { id: 1, client: "Maria Silva", service: "Manicure", time: "14:00", status: "confirmed" },
-    { id: 2, client: "Ana Costa", service: "Pedicure", time: "15:30", status: "pending" },
-    { id: 3, client: "João Santos", service: "Corte", time: "16:00", status: "confirmed" },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -294,27 +363,34 @@ const Dashboard = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {recentAppointments.map((appointment) => (
-                        <div key={appointment.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                              <Users className="h-5 w-5 text-primary" />
+                    {todayAppointments.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p>Nenhum agendamento para hoje</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {todayAppointments.map((appointment) => (
+                          <div key={appointment.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <Users className="h-5 w-5 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium">{appointment.client_name}</p>
+                                <p className="text-sm text-muted-foreground">{appointment.service_name}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">{appointment.client}</p>
-                              <p className="text-sm text-muted-foreground">{appointment.service}</p>
+                            <div className="flex items-center space-x-4">
+                              <span className="text-sm font-medium">{appointment.appointment_time.slice(0, 5)}</span>
+                              <Badge variant={appointment.status === "confirmed" ? "default" : "secondary"}>
+                                {getStatusBadge(appointment.status)}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <span className="text-sm font-medium">{appointment.time}</span>
-                            <Badge variant={appointment.status === "confirmed" ? "default" : "secondary"}>
-                              {appointment.status === "confirmed" ? "Confirmado" : "Pendente"}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
