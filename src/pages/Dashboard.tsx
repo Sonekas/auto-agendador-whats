@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { HeroButton } from "@/components/ui/hero-button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -22,7 +24,9 @@ import {
   LogOut,
   Briefcase,
   CalendarClock,
-  Wallet
+  Wallet,
+  Copy,
+  ExternalLink
 } from "lucide-react";
 import { ServicesManager } from "@/components/dashboard/ServicesManager";
 import { SlotsManager } from "@/components/dashboard/SlotsManager";
@@ -35,6 +39,8 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentMonth] = useState("Dezembro 2024");
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [publicLink, setPublicLink] = useState<string>("");
 
   useEffect(() => {
     const checkUser = async () => {
@@ -46,6 +52,18 @@ const Dashboard = () => {
       }
       
       setUser(user);
+      
+      // Carregar link público
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("public_link")
+        .eq("id", user.id)
+        .single();
+      
+      if (profile?.public_link) {
+        setPublicLink(profile.public_link);
+      }
+      
       setLoading(false);
     };
 
@@ -66,6 +84,19 @@ const Dashboard = () => {
     await supabase.auth.signOut();
     toast.success("Logout realizado com sucesso!");
     navigate("/");
+  };
+
+  const getBookingUrl = () => {
+    return `${window.location.origin}/booking/${publicLink}`;
+  };
+
+  const copyBookingLink = () => {
+    navigator.clipboard.writeText(getBookingUrl());
+    toast.success("Link copiado para a área de transferência!");
+  };
+
+  const openBookingPage = () => {
+    window.open(getBookingUrl(), '_blank');
   };
 
   if (loading) {
@@ -92,6 +123,48 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compartilhar Link de Agendamento</DialogTitle>
+            <DialogDescription>
+              Compartilhe este link com seus clientes para que eles possam fazer agendamentos
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Input 
+                value={getBookingUrl()} 
+                readOnly 
+                className="flex-1"
+              />
+              <Button onClick={copyBookingLink} size="sm">
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={openBookingPage} variant="outline" className="flex-1">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Abrir Página
+              </Button>
+              <Button 
+                onClick={() => {
+                  const whatsappText = `Agende seu horário através do link: ${getBookingUrl()}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(whatsappText)}`, '_blank');
+                }}
+                variant="outline" 
+                className="flex-1"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                WhatsApp
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container py-4">
@@ -103,7 +176,7 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setShareDialogOpen(true)}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Compartilhar Link
               </Button>
