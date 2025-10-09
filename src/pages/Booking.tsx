@@ -122,7 +122,7 @@ const Booking = () => {
         .from("appointments")
         .select("appointment_date, appointment_time")
         .eq("professional_id", professionalId)
-        .eq("status", "scheduled");
+        .in("status", ["scheduled", "confirmed", "pending_payment"]);
 
       if (error) throw error;
       setExistingAppointments(data || []);
@@ -188,13 +188,13 @@ const Booking = () => {
           client_name: clientData.name,
           client_phone: clientData.phone,
           price: selectedService.price,
-          status: 'scheduled'
+          status: pixKey ? 'pending_payment' : 'scheduled'
         }]);
 
       if (error) throw error;
       
       setBookingComplete(true);
-      toast.success("Agendamento realizado com sucesso!");
+      toast.success(pixKey ? "Agendamento criado! Complete o pagamento" : "Agendamento realizado com sucesso!");
     } catch (error) {
       console.error("Erro ao agendar:", error);
       toast.error("Erro ao realizar agendamento");

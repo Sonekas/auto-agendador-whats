@@ -114,8 +114,33 @@ export function AppointmentsManager() {
     return service?.name || "Serviço não encontrado";
   };
 
+  const handleConfirmPayment = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({ status: "confirmed" })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Pagamento confirmado",
+        description: "Agendamento confirmado com sucesso.",
+      });
+
+      fetchAppointments();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao confirmar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
+      pending_payment: { variant: "outline", label: "Aguardando Pagamento" },
       scheduled: { variant: "secondary", label: "Agendado" },
       confirmed: { variant: "default", label: "Confirmado" },
       cancelled: { variant: "destructive", label: "Cancelado" },
@@ -171,6 +196,27 @@ export function AppointmentsManager() {
             <strong>Observações:</strong> {appointment.notes}
           </div>
         )}
+        {appointment.status === "pending_payment" && (
+          <div className="flex gap-2 pt-2">
+            <Button
+              size="sm"
+              onClick={() => handleConfirmPayment(appointment.id)}
+              className="flex-1"
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Confirmar Pagamento
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => updateStatus(appointment.id, "cancelled")}
+              className="flex-1"
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Cancelar
+            </Button>
+          </div>
+        )}
         {appointment.status === "scheduled" && (
           <div className="flex gap-2 pt-2">
             <Button
@@ -208,8 +254,11 @@ export function AppointmentsManager() {
       </div>
 
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="all">Todos ({appointments.length})</TabsTrigger>
+          <TabsTrigger value="pending_payment">
+            Aguardando ({filterAppointments("pending_payment").length})
+          </TabsTrigger>
           <TabsTrigger value="scheduled">
             Agendados ({filterAppointments("scheduled").length})
           </TabsTrigger>
@@ -233,6 +282,12 @@ export function AppointmentsManager() {
               <AppointmentCard key={appointment.id} appointment={appointment} />
             ))
           )}
+        </TabsContent>
+
+        <TabsContent value="pending_payment" className="space-y-4">
+          {filterAppointments("pending_payment").map(appointment => (
+            <AppointmentCard key={appointment.id} appointment={appointment} />
+          ))}
         </TabsContent>
 
         <TabsContent value="scheduled" className="space-y-4">
