@@ -54,11 +54,15 @@ const Booking = () => {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [clientData, setClientData] = useState({
     name: "",
-    phone: ""
+    phone: "",
+    email: ""
   });
   const [submitting, setSubmitting] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [pixKey, setPixKey] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [createdAppointmentId, setCreatedAppointmentId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfessionalData();
@@ -176,9 +180,14 @@ const Booking = () => {
       return;
     }
 
+    if (paymentMethod === "card" && !clientData.email) {
+      toast.error("Email é obrigatório para pagamento com cartão");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("appointments")
         .insert([{
           professional_id: professionalId,
@@ -188,18 +197,50 @@ const Booking = () => {
           client_name: clientData.name,
           client_phone: clientData.phone,
           price: selectedService.price,
-          status: pixKey ? 'pending_payment' : 'scheduled'
-        }]);
+          status: 'pending_payment'
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
       
-      setBookingComplete(true);
-      toast.success(pixKey ? "Agendamento criado! Complete o pagamento" : "Agendamento realizado com sucesso!");
+      if (paymentMethod === "card") {
+        setCreatedAppointmentId(data.id);
+        await handleCardPayment(data.id);
+      } else {
+        setBookingComplete(true);
+        toast.success("Agendamento criado! Complete o pagamento via PIX");
+      }
     } catch (error) {
       console.error("Erro ao agendar:", error);
       toast.error("Erro ao realizar agendamento");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCardPayment = async (appointmentId: string) => {
+    setProcessingPayment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: {
+          appointmentId,
+          email: clientData.email,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        setBookingComplete(true);
+        toast.success("Redirecionando para pagamento...");
+      }
+    } catch (error) {
+      console.error("Erro ao processar pagamento:", error);
+      toast.error("Erro ao processar pagamento");
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -440,12 +481,56 @@ const Booking = () => {
                 />
               </div>
 
+              {pixKey && (
+                <div>
+                  <Label>Forma de Pagamento</Label>
+                  <div className="space-y-2 mt-2">
+                    <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-accent/5 smooth-transition">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="pix"
+                        checked={paymentMethod === "pix"}
+                        onChange={(e) => setPaymentMethod(e.target.value as "pix")}
+                        className="mr-3"
+                      />
+                      <span>PIX</span>
+                    </label>
+                    <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-accent/5 smooth-transition">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="card"
+                        checked={paymentMethod === "card"}
+                        onChange={(e) => setPaymentMethod(e.target.value as "card")}
+                        className="mr-3"
+                      />
+                      <span>Cartão de Crédito (Stripe)</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === "card" && (
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={clientData.email}
+                    onChange={(e) => setClientData({ ...clientData, email: e.target.value })}
+                    placeholder="seu@email.com"
+                    className="mt-1"
+                  />
+                </div>
+              )}
+
               <Button 
                 onClick={handleSubmitBooking} 
-                disabled={submitting || !clientData.name || !clientData.phone}
+                disabled={submitting || processingPayment || !clientData.name || !clientData.phone}
                 className="w-full"
               >
-                {submitting ? "Agendando..." : "Confirmar Agendamento"}
+                {submitting || processingPayment ? "Processando..." : "Confirmar Agendamento"}
               </Button>
             </CardContent>
           </Card>
