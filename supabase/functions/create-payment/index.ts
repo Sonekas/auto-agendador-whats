@@ -34,7 +34,7 @@ serve(async (req) => {
     if (!appointment) throw new Error("Agendamento não encontrado");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
+      apiVersion: "2023-10-16",
     });
 
     // Verificar se cliente já existe
