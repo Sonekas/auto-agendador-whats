@@ -60,6 +60,10 @@ const Header = () => {
             <Link to="/contact" className="block text-sm font-medium hover:text-primary transition-colors">
               Contato
             </Link>
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-sm text-muted-foreground">Tema</span>
+              <ThemeToggle />
+            </div>
             <div className="pt-4 space-y-2">
               <Link to="/login" className="block">
                 <Button variant="outline" className="w-full">Entrar</Button>
