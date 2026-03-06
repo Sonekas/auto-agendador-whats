@@ -157,3 +157,7 @@
     transition: var(--transition-spring);
   }
 }
+
+#lovable-badge {
+  display: none !important;
+}
