@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HeroButton } from "@/components/ui/hero-button";
-import { Menu, X, Calendar, Users } from "lucide-react";
+import { Menu, X, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -30,6 +31,7 @@ const Header = () => {
         </nav>
 
         <div className="hidden md:flex items-center space-x-4">
+          <ThemeToggle />
           <Link to="/login">
             <Button variant="ghost">Entrar</Button>
           </Link>
