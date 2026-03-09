@@ -49,35 +49,7 @@ const Dashboard = () => {
   const [todayAppointments, setTodayAppointments] = useState<any[]>([]);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate("/login");
-        return;
-      }
-      
-      setUser(user);
-      
-      // Carregar link público
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("public_link")
-        .eq("id", user.id)
-        .single();
-      
-      if (profile?.public_link) {
-        setPublicLink(profile.public_link);
-      }
-      
-      // Carregar estatísticas
-      await loadStats(user.id);
-      
-      setLoading(false);
-    };
-
-    checkUser();
-
+    // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         navigate("/login");
@@ -86,6 +58,36 @@ const Dashboard = () => {
         loadStats(session.user.id);
       }
     });
+
+    // Then check current session
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+      
+      setUser(session.user);
+      
+      // Carregar link público
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("public_link")
+        .eq("id", session.user.id)
+        .single();
+      
+      if (profile?.public_link) {
+        setPublicLink(profile.public_link);
+      }
+      
+      // Carregar estatísticas
+      await loadStats(session.user.id);
+      
+      setLoading(false);
+    };
+
+    checkUser();
 
     return () => subscription.unsubscribe();
   }, [navigate]);
