@@ -61,9 +61,14 @@ const Dashboard = () => {
 
     // Then check current session
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (error || !session) {
+        // Clear any stale tokens before redirecting
+        if (error) {
+          console.warn("Session error, clearing auth:", error.message);
+          await supabase.auth.signOut();
+        }
         navigate("/login");
         return;
       }
